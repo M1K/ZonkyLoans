@@ -2,6 +2,8 @@ package cz.zonky.loans.client.impl;
 
 import cz.zonky.loans.client.LoansClient;
 import cz.zonky.loans.client.pojo.Loan;
+import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.commons.lang3.time.FastDateFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,11 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.net.URI;
-import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Date;
 
 /**
  * @author Michal Svarc
@@ -22,17 +23,18 @@ import java.util.Collections;
 @Service
 public class LoansClientImpl implements LoansClient {
 
+    static final FastDateFormat DATE_FORMAT = DateFormatUtils.ISO_8601_EXTENDED_DATETIME_FORMAT;
     private static final Logger LOGGER = LoggerFactory.getLogger(LoansClientImpl.class);
-    @Value("zonky.loans.job.url")
-    private String url;
+    @Value("${zonky.loans.job.url}")
+    String url;
 
     @Override
-    public Loan[] getLoansFrom(LocalDateTime from, Integer size, Integer page) throws IOException {
+    public ResponseEntity<Loan[]> getLoansFrom(Date from, Integer size, Integer page) throws IOException {
         // Build url
-        String fromString = from.toString();
+        String fromString = DATE_FORMAT.format(from);
         UriComponentsBuilder builder = UriComponentsBuilder
                 .fromUriString(url)
-                .queryParam("datePublished", fromString);
+                .queryParam("datePublished__gt", fromString);
         URI uri = builder.build().toUri();
         LOGGER.debug("Computed url: {}", uri);
         // Rest template
@@ -50,6 +52,6 @@ public class LoansClientImpl implements LoansClient {
             LOGGER.warn("No content, uri: " + uri);
             return null;
         }
-        return response.getBody();
+        return response;
     }
 }

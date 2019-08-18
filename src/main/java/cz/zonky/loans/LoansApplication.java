@@ -1,6 +1,6 @@
 package cz.zonky.loans;
 
-import cz.zonky.loans.job.LoansUpdaterJob;
+import cz.zonky.loans.job.LoansProcessJob;
 import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +22,7 @@ public class LoansApplication {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoansApplication.class);
     private static final String GROUP_NAME = "ZonkyLoans";
     private Scheduler scheduler;
-    @Value("zonky.loans.job.cron")
+    @Value("${zonky.loans.job.cron}")
     private String loansJobCron;
 
     public LoansApplication(Scheduler scheduler) {
@@ -35,10 +35,10 @@ public class LoansApplication {
 
     @PostConstruct
     public void init() {
-        this.scheduleJob(LoansUpdaterJob.class, loansJobCron);
+        this.scheduleJob(LoansProcessJob.class, loansJobCron);
     }
 
-    protected void scheduleJob(Class<? extends Job> clazz, String cron) {
+    public void scheduleJob(Class<? extends Job> clazz, String cron) {
         try {
             JobDetail detail = createJobDetail(clazz);
             Trigger trigger = createTrigger(clazz, cron, detail);
@@ -54,11 +54,31 @@ public class LoansApplication {
         }
     }
 
+    public void startJob(Class<? extends Job> clazz) {
+        try {
+            JobDetail detail = createJobDetail(clazz);
+            Trigger trigger = createTriggerNow(clazz, detail);
+            scheduler.addJob(detail, true);
+            scheduler.triggerJob(trigger.getJobKey());
+            LOGGER.info("Started job: {}", clazz.getSimpleName());
+        } catch (SchedulerException e) {
+            LOGGER.error(null, e);
+        }
+    }
+
     private static Trigger createTrigger(Class<? extends Job> clazz, String cron, JobDetail detail) {
         return TriggerBuilder.newTrigger()
                 .forJob(detail)
                 .withIdentity(clazz.getSimpleName(), GROUP_NAME)
                 .withSchedule(CronScheduleBuilder.cronSchedule(cron))
+                .build();
+    }
+
+    private static Trigger createTriggerNow(Class<? extends Job> clazz, JobDetail detail) {
+        return TriggerBuilder.newTrigger()
+                .forJob(detail)
+                .withIdentity(clazz.getSimpleName(), GROUP_NAME)
+                .startNow()
                 .build();
     }
 

@@ -1,9 +1,10 @@
 package cz.zonky.loans.client;
 
 import cz.zonky.loans.client.pojo.Loan;
+import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * @author Michal Svarc
@@ -12,9 +13,9 @@ public interface LoansClient {
 
     Integer DEFAULT_PAGE_SIZE = 20;
 
-    Loan[] getLoansFrom(LocalDateTime from, Integer size, Integer page) throws IOException;
+    ResponseEntity<Loan[]> getLoansFrom(Date from, Integer size, Integer page) throws IOException;
 
-    default Loan[] getLoansFrom(LocalDateTime from, Integer page) throws IOException {
+    default ResponseEntity<Loan[]> getLoansFrom(Date from, Integer page) throws IOException {
         return this.getLoansFrom(from, DEFAULT_PAGE_SIZE, page);
     }
 }

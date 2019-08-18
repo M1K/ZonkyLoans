@@ -10,13 +10,15 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.net.URI;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+
+import static cz.zonky.loans.client.impl.LoansClientImpl.DATE_FORMAT;
 
 /**
  * @author Michal Svarc
+ * Local dev testing
  */
 public class LoansClientLocal implements LoansClient {
 
@@ -25,26 +27,31 @@ public class LoansClientLocal implements LoansClient {
 
     public static void main(String[] args) {
         try {
-            String fromString = "2019-08-15T18:23:53.101+02:00";
-            ZonedDateTime from = ZonedDateTime.parse(fromString, DateTimeFormatter.ISO_DATE_TIME);
-            Loan[] loans = new LoansClientLocal().getLoansFrom(from.toLocalDateTime(), 10, 0);
+            String fromString = "2019-08-15T00:00:00.000+02:00";
+            Date from = DATE_FORMAT.parse(fromString);
+//            Date from = new Date();
+            ResponseEntity<Loan[]> response = new LoansClientLocal().getLoansFrom(from, 10, 0);
+            List<String> headers = response.getHeaders().get("X-Total");
+            Long total = headers == null || headers.isEmpty() ? null : Long.parseLong(headers.get(0));
+            LOGGER.debug("Total to process: {}", total);
+            Loan[] loans = response.getBody();
             if (loans != null) {
                 LOGGER.debug("Returned loans: {}", loans.length);
                 for (Loan loan : loans) {
                     LOGGER.debug("{}\n", loan);
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             LOGGER.error(null, e);
         }
     }
 
     @Override
-    public Loan[] getLoansFrom(LocalDateTime from, Integer size, Integer page) throws IOException {
+    public ResponseEntity<Loan[]> getLoansFrom(Date from, Integer size, Integer page) throws IOException {
         // Build url
         UriComponentsBuilder builder = UriComponentsBuilder
                 .fromUriString(BASE_URL)
-                .queryParam("datePublished", from.toString());
+                .queryParam("datePublished__gt", DATE_FORMAT.format(from));
         URI uri = builder.build().toUri();
         LOGGER.debug("Computed url: {}", uri);
         // Rest template
@@ -62,6 +69,6 @@ public class LoansClientLocal implements LoansClient {
             LOGGER.warn("Nothing returned - response: {}", response);
             return null;
         }
-        return response.getBody();
+        return response;
     }
 }
