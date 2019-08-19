@@ -36,7 +36,7 @@ public class LoansClientImpl implements LoansClient {
                 .fromUriString(url)
                 .queryParam("datePublished__gt", fromString);
         URI uri = builder.build().toUri();
-        LOGGER.debug("Computed url: {}", uri);
+        LOGGER.debug("Computed url: {}, size: {}, page: {}", uri, size, page);
         // Rest template
         RestTemplate template = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
@@ -48,9 +48,9 @@ public class LoansClientImpl implements LoansClient {
         ResponseEntity<Loan[]> response = template.exchange(uri, HttpMethod.GET, entity, Loan[].class);
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new IOException("Error, uri: " + uri + " >> response: " + response.getStatusCode());
-        } else if (response.getBody() == null) {
-            LOGGER.warn("No content, uri: " + uri);
-            return null;
+        } else if (response.getBody() == null || response.getBody().length == 0) {
+            LOGGER.debug("No content, uri: " + uri);
+            return response;
         }
         return response;
     }

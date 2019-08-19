@@ -42,7 +42,7 @@ public class LoansProcessJob implements Job {
             while ((loans = response.getBody()) != null && loans.length > 0) {
                 LOGGER.debug("Found loans: {}", loans.length);
                 for (Loan loan : loans) {
-                    // Business logic...
+                    // Some business logic, store it maybe ...
                 }
                 processed += loans.length;
                 response = loansClient.getLoansFrom(from, ++page);
@@ -54,7 +54,7 @@ public class LoansProcessJob implements Job {
             } else if (toProcess.equals(processed)) {
                 // All done
             } else {
-                // Not all finished, some status update, etc.
+                // Not all finished, some status update, raise error?
             }
         } catch (IOException e) {
             LOGGER.error(null, e);
@@ -64,6 +64,7 @@ public class LoansProcessJob implements Job {
     /*
     Here I would ask for clarification - what is the purpose? Just somehow notify about new loans or process them all? At first run, I have to decide if I should
     process loans just from last 5 mins or all of them. I think the first is correct...
+    I am taking from as time when job last ran, so in case of missing run, error etc. I should get missing data.
      */
     private Date getDateFrom(JobExecutionContext context) {
         if (context == null || context.getPreviousFireTime() == null) {
